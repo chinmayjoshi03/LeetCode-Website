@@ -1,5 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ALL_PROBLEMS } from './data/problems';
+import { Search, Code2, BookOpen, CheckCircle2, Circle, ListFilter, AlertCircle, RefreshCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 
 const STORAGE_KEY = 'leetcode-tracker-solved';
@@ -20,6 +22,13 @@ function App() {
   const [topicFilter, setTopicFilter] = useState('All');
   const [diffFilter, setDiffFilter] = useState('All');
   const [showFilter, setShowFilter] = useState('All'); // All, Solved, Unsolved
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const topics = useMemo(() => {
     const map = {};
@@ -67,175 +76,309 @@ function App() {
     return { total, solved, byDiff, pct: total ? Math.round((solved / total) * 100) : 0 };
   }, [solvedSet]);
 
-  const circumference = 2 * Math.PI * 34;
+  const circumference = 2 * Math.PI * 40;
   const dashOffset = circumference - (circumference * stats.pct) / 100;
 
   const handleReset = () => {
-    if (window.confirm('Reset all progress? This cannot be undone.')) {
+    if (window.confirm('Are you sure you want to reset all your progress? This action cannot be undone.')) {
       setSolvedSet(new Set());
       saveSolved(new Set());
     }
   };
 
   return (
-    <>
+    <div className="app-container">
       {/* HEADER */}
-      <header className="header">
+      <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
         <div className="header-inner">
-          <div className="logo">
-            <div className="logo-icon">LC</div>
-            <div>
-              <h1>LeetCode Tracker</h1>
-              <span>Master your DSA journey</span>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="logo"
+          >
+            <div className="logo-icon">
+              <Code2 size={24} />
             </div>
-          </div>
-          <div className="search-bar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-            <input
-              type="text"
-              placeholder="Search problems by name or number..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              id="search-input"
-            />
-          </div>
-          <div className="header-stats">
-            <div className="stat-pill solved">
-              <span>✓</span>
-              <span className="stat-num">{stats.solved}</span>
-              <span>/ {stats.total}</span>
+            <div className="logo-text">
+              <h1>CodeTrack</h1>
+              <span>Master Your DSA Journey</span>
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="search-container"
+          >
+            <div className="search-bar">
+              <Search className="search-icon" size={18} />
+              <input
+                type="text"
+                placeholder="Search problems by name or number..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="clear-search" onClick={() => setSearch('')}>
+                  &times;
+                </button>
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="header-stats"
+          >
+            <div className="global-progress">
+              <div className="progress-text">
+                <span className="label">Overall Progress</span>
+                <span className="value">{stats.pct}%</span>
+              </div>
+              <div className="progress-bar-mini">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stats.pct}%` }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                  className="fill"
+                />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </header>
 
-      <div className="app-layout">
+      <main className="main-layout">
         {/* SIDEBAR */}
-        <aside className="sidebar">
+        <motion.aside
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1 }}
+          className="sidebar"
+        >
           {/* Progress Card */}
-          <div className="progress-card">
+          <div className="glass-card progress-card">
+            <div className="card-header">
+              <h3>YOUR PROGRESS</h3>
+              <button
+                className="reset-btn-icon"
+                onClick={handleReset}
+                title="Reset All Progress"
+              >
+                <RefreshCcw size={14} />
+              </button>
+            </div>
+
             <div className="progress-ring-container">
               <div className="progress-ring">
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                  <circle className="bg" cx="40" cy="40" r="34" />
-                  <circle className="fg" cx="40" cy="40" r="34"
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <circle className="ring-bg" cx="50" cy="50" r="40" />
+                  <motion.circle
+                    className="ring-fg"
+                    cx="50" cy="50" r="40"
                     strokeDasharray={circumference}
-                    strokeDashoffset={dashOffset} />
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset: dashOffset }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                  />
                 </svg>
-                <div className="center-text">{stats.pct}%</div>
-              </div>
-              <div className="progress-stats">
-                <div className="label">Problems Solved</div>
-                <div className="value">{stats.solved}</div>
-                <div className="label">of {stats.total} total</div>
-              </div>
-            </div>
-            <div className="progress-bars">
-              {['Easy', 'Medium', 'Hard'].map(d => (
-                <div className="progress-bar-row" key={d}>
-                  <span className={`label ${d.toLowerCase()}`}>{d}</span>
-                  <div className="progress-bar-track">
-                    <div className={`progress-bar-fill ${d.toLowerCase()}`}
-                      style={{ width: stats.byDiff[d].total ? `${(stats.byDiff[d].solved / stats.byDiff[d].total) * 100}%` : '0%' }} />
-                  </div>
-                  <span className="nums">{stats.byDiff[d].solved}/{stats.byDiff[d].total}</span>
+                <div className="ring-content">
+                  <span className="ring-value">{stats.solved}</span>
+                  <span className="ring-label">of {stats.total}</span>
                 </div>
-              ))}
+              </div>
             </div>
-            <button className="reset-btn" onClick={handleReset}>Reset All Progress</button>
+
+            <div className="difficulty-stats">
+              {['Easy', 'Medium', 'Hard'].map(d => {
+                const diffStats = stats.byDiff[d];
+                const pct = diffStats.total ? (diffStats.solved / diffStats.total) * 100 : 0;
+                return (
+                  <div className="diff-stat-row" key={d}>
+                    <div className="diff-stat-header">
+                      <span className={`diff-label ${d.toLowerCase()}`}>{d}</span>
+                      <span className="diff-nums">{diffStats.solved} / {diffStats.total}</span>
+                    </div>
+                    <div className="diff-bar-bg">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 1, delay: 0.2 }}
+                        className={`diff-bar-fill ${d.toLowerCase()}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Difficulty Filter */}
-          <div className="sidebar-section">
-            <h3>Difficulty</h3>
-            <div className="diff-filters">
-              {['Easy', 'Medium', 'Hard'].map(d => (
-                <button key={d}
-                  className={`diff-btn ${d.toLowerCase()} ${diffFilter === d ? 'active' : ''}`}
-                  onClick={() => setDiffFilter(diffFilter === d ? 'All' : d)}>
-                  {d}
+          {/* Difficulty Filter Card */}
+          <div className="glass-card filters-card">
+            <div className="filters-section">
+              <h3><ListFilter size={16} /> DIFFICULTY</h3>
+              <div className="diff-filters">
+                {['Easy', 'Medium', 'Hard'].map(d => (
+                  <button key={d}
+                    className={`filter-chip ${d.toLowerCase()} ${diffFilter === d ? 'active' : ''}`}
+                    onClick={() => setDiffFilter(diffFilter === d ? 'All' : d)}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Topics Filter Card */}
+          <div className="glass-card filters-card">
+            <div className="filters-section topics-section">
+              <h3><BookOpen size={16} /> TOPICS</h3>
+              <div className="topics-list">
+                <button
+                  className={`topic-btn ${topicFilter === 'All' ? 'active' : ''}`}
+                  onClick={() => setTopicFilter('All')}
+                >
+                  <span className="topic-name">All Topics</span>
+                  <span className="topic-count">{ALL_PROBLEMS.length}</span>
+                </button>
+                {topics.map(([topic, count]) => (
+                  <button key={topic}
+                    className={`topic-btn ${topicFilter === topic ? 'active' : ''}`}
+                    onClick={() => setTopicFilter(topicFilter === topic ? 'All' : topic)}
+                  >
+                    <span className="topic-name">{topic}</span>
+                    <span className="topic-count">{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.aside>
+
+        {/* CONTENT AREA */}
+        <section className="content-area">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="content-header"
+          >
+            <div className="header-titles">
+              <h2>{topicFilter === 'All' ? 'Problem List' : `${topicFilter} Problems`}</h2>
+              <span className="badge">{filtered.length} visible</span>
+            </div>
+
+            <div className="state-filters">
+              {[
+                { id: 'All', label: 'All' },
+                { id: 'Unsolved', label: 'Todo' },
+                { id: 'Solved', label: 'Done' }
+              ].map(f => (
+                <button key={f.id}
+                  className={`state-tab ${showFilter === f.id ? 'active' : ''}`}
+                  onClick={() => setShowFilter(f.id)}>
+                  {f.label}
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Topic Filter */}
-          <div className="sidebar-section">
-            <h3>Topics</h3>
-            <button className={`filter-btn ${topicFilter === 'All' ? 'active' : ''}`}
-              onClick={() => setTopicFilter('All')}>
-              All Topics <span className="count">{ALL_PROBLEMS.length}</span>
-            </button>
-            {topics.map(([topic, count]) => (
-              <button key={topic}
-                className={`filter-btn ${topicFilter === topic ? 'active' : ''}`}
-                onClick={() => setTopicFilter(topicFilter === topic ? 'All' : topic)}>
-                {topic} <span className="count">{count}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* MAIN CONTENT */}
-        <main className="main-content">
-          <div className="content-header">
-            <div>
-              <h2>{topicFilter === 'All' ? 'All Problems' : topicFilter}</h2>
-              <span className="problem-count">{filtered.length} problems</span>
-            </div>
-            <div className="show-filter">
-              {['All', 'Unsolved', 'Solved'].map(f => (
-                <button key={f}
-                  className={`show-btn ${showFilter === f ? 'active' : ''}`}
-                  onClick={() => setShowFilter(f)}>
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="problems-table">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="table-container glass-card"
+          >
             <div className="table-header">
-              <span></span>
-              <span>#</span>
-              <span>Title</span>
-              <span>Difficulty</span>
-              <span>Topic</span>
+              <div className="col-status">Status</div>
+              <div className="col-id">#</div>
+              <div className="col-title">Title</div>
+              <div className="col-diff">Difficulty</div>
+              <div className="col-topic">Topic</div>
             </div>
-            {filtered.length === 0 ? (
-              <div className="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>No problems match your filters</p>
-              </div>
-            ) : (
-              filtered.map((p) => (
-                <div key={p.id}
-                  className={`problem-row ${solvedSet.has(p.id) ? 'solved-row' : ''}`}
-                  style={{ animationDelay: '0ms' }}>
-                  <div className="checkbox-cell">
-                    <div className={`checkbox ${solvedSet.has(p.id) ? 'checked' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); toggleSolved(p.id); }}
-                      role="checkbox"
-                      aria-checked={solvedSet.has(p.id)}
-                      tabIndex={0}
-                      id={`check-${p.id}`}
-                    />
-                  </div>
-                  <span className="problem-number">{p.number}</span>
-                  <div className="problem-title-cell">
-                    <a href={p.url} target="_blank" rel="noopener noreferrer">{p.title}</a>
-                  </div>
-                  <span className={`difficulty-badge ${p.difficulty}`}>{p.difficulty}</span>
-                  <span className="topic-badge">{p.topic}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </main>
-      </div>
-    </>
+
+            <div className="table-body">
+              <AnimatePresence>
+                {filtered.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="empty-state"
+                  >
+                    <div className="empty-icon-wrap">
+                      <AlertCircle size={48} />
+                    </div>
+                    <h3>No problems found</h3>
+                    <p>Try adjusting your search or filters to find what you're looking for.</p>
+                    <button
+                      className="clear-filters-btn"
+                      onClick={() => {
+                        setSearch('');
+                        setTopicFilter('All');
+                        setDiffFilter('All');
+                        setShowFilter('All');
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  </motion.div>
+                ) : (
+                  filtered.map((p, index) => {
+                    const isSolved = solvedSet.has(p.id);
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.2) }}
+                        key={p.id}
+                        className={`table-row ${isSolved ? 'is-solved' : ''}`}
+                        onClick={() => toggleSolved(p.id)}
+                      >
+                        <div className="col-status">
+                          <button
+                            className={`status-btn ${isSolved ? 'solved' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSolved(p.id);
+                            }}
+                          >
+                            {isSolved ? <CheckCircle2 size={20} className="check-icon" /> : <Circle size={20} className="circle-icon" />}
+                          </button>
+                        </div>
+                        <div className="col-id font-mono">{p.number}</div>
+                        <div className="col-title">
+                          <a
+                            href={p.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="problem-link"
+                          >
+                            {p.title}
+                          </a>
+                        </div>
+                        <div className="col-diff">
+                          <span className={`badge-diff ${p.difficulty.toLowerCase()}`}>
+                            {p.difficulty}
+                          </span>
+                        </div>
+                        <div className="col-topic">
+                          <span className="badge-topic">
+                            {p.topic}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </section>
+      </main>
+    </div>
   );
 }
 
